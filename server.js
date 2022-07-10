@@ -1,4 +1,5 @@
 import { ApolloServer, gql } from "apollo-server";
+import fetch from "node-fetch";
 
 let tweets = [
   {
@@ -28,14 +29,21 @@ let users = [
 
 // SDL : Schema Definition Language
 // 유저에게 뭔가 보내주려면 타입을 설정해줘야한다.
+// """ """와 같이 """로 감싸면 apollo에 schema에 설명으로 들어간다.
 const typeDefs = gql`
   type User {
     id: ID!
     username: String!
     fisrtName: String!
     lastName: String!
+    """
+    Is the sum of firstName + lastName as a string
+    """
     fullName: String!
   }
+  """
+  Tweet object represents a resource for a Tweet
+  """
   type Tweet {
     id: ID!
     text: String!
@@ -44,11 +52,40 @@ const typeDefs = gql`
   type Query {
     allUsers: [User!]!
     allTweets: [Tweet!]!
+    allMovies: [Movie!]!
     tweet(id: ID!): Tweet
+    movie(id: String!): Movie
   }
   type Mutation {
     postTweet(text: String!, userId: ID!): Tweet!
+    """
+    Delete a Tweet if found, else returns false
+    """
     deleteTweet(id: ID!): Boolean!
+  }
+  type Movie {
+    id: Int!
+    url: String!
+    imdb_code: String!
+    title: String!
+    title_english: String!
+    title_long: String!
+    slug: String!
+    year: Int!
+    rating: Float!
+    runtime: Float!
+    genres: [String]!
+    summary: String
+    description_full: String!
+    synopsis: String!
+    yt_trailer_code: String!
+    language: String!
+    mpa_rating: String!
+    background_image: String!
+    background_image_original: String!
+    small_cover_image: String!
+    medium_cover_image: String!
+    large_cover_image: String!
   }
 `;
 
@@ -63,6 +100,16 @@ const resolvers = {
     allUsers() {
       console.log("allUsers called");
       return users;
+    },
+    allMovies() {
+      return fetch("https://yts.mx/api/v2/list_movies.json")
+        .then((res) => res.json())
+        .then((json) => json.data.movies);
+    },
+    movie(_, { id }) {
+      return fetch(`https://yts.mx/api/v2/movie_details.json?movie_id=${id}`)
+        .then((res) => res.json())
+        .then((json) => json.data.movie);
     },
   },
   Mutation: {
